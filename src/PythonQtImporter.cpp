@@ -44,6 +44,10 @@
 // automatically if it has write access/is not inside of a zip file.
 //----------------------------------------------------------------------------------
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "PythonQtImporter.h"
 #include "PythonQtImportFileInterface.h"
 #include "PythonQt.h"

@@ -1,21 +1,24 @@
-#-----------------------------------------------------------------------------
-# NOTE: The CMake files have been contributed to PythonQt and have not been tested with the current
-# PythonQt version. They have not yet been updated to support Qt 5 and/or Python 3.
-#
-# If you are not a CMake expert, you should better use the provided qmake profiles.
-#-----------------------------------------------------------------------------
-
 cmake_minimum_required(VERSION 2.8)
 
 #-----------------------------------------------------------------------------
 project(PythonQt)
 #-----------------------------------------------------------------------------
 
+# NOTE: Only Release builds are supported. Debug builds don't seem to compile properly.
+
 #----------------------------------------------------------------------------
 # Qt version
 
-#set(Qt5_DIR CACHE PATH "Qt5_DIR-NOTFOUND" "The qt5 cmake directory")
-set(QT_QMAKE_EXECUTABLE )
+# We want Qt5 for this, so I'm going to forcibly set the required version to 5
+# without this line, it will expect us to predefine Qt5_DIR (e.g., from command line)
+# and you won't be able to browse for Qt5_DIR through cmakegui
+#
+# there is probably still more Qt4 stuff that can be cleaned up, though.
+
+# Note that for me, Qt5_DIR is C:/Qt/Qt5.7.0/5.7/msvc2013_64/lib/cmake/Qt5
+unset(QT_QMAKE_EXECUTABLE CACHE)
+
+set(PythonQt_QT_VERSION "5")
 
 # Sanity checks
 if(DEFINED Qt5_DIR AND DEFINED QT_QMAKE_EXECUTABLE)
@@ -24,36 +27,18 @@ if(DEFINED Qt5_DIR AND DEFINED QT_QMAKE_EXECUTABLE)
 To build with Qt4, specify QT_QMAKE_EXECUTABLE. To build with Qt5, specify  Qt5_DIR.")
 endif()
 
-# Set PythonQt_QT_VERSION
-if(DEFINED Qt5_DIR)
-  message(STATUS "${PROJECT_NAME}: Setting PythonQt_QT_VERSION to 5 because Qt5_DIR is defined.")
-  set(PythonQt_QT_VERSION 5)
-elseif(DEFINED QT_QMAKE_EXECUTABLE)
-  message(STATUS "${PROJECT_NAME}: Setting PythonQt_QT_VERSION to 4 because QT_QMAKE_EXECUTABLE is defined.")
-  set(PythonQt_QT_VERSION 4)
-else()
-  set(PythonQt_QT_VERSION 4 CACHE STRING "Pick a version of Qt to use: 4 or 5")
-  # Set the possible values of Qt version for cmake-gui
-  set_property(CACHE PythonQt_QT_VERSION PROPERTY STRINGS "4" "5")
-endif()
-
 # Requirements
 set(minimum_required_qt5_version "5.3.0")
-set(minimum_required_qt4_version "4.6.2")
+
 set(minimum_required_qt_version ${minimum_required_qt${PythonQt_QT_VERSION}_version})
 
 # Qt components
-set(qt5libs Core Widgets Network OpenGL Sql Svg UiTools WebKitWidgets Xml XmlPatterns)
-set(qt4libs core gui network opengl sql svg uitools webkit xml xmlpatterns)
+set(qt5libs Core Widgets Network OpenGL Sql Svg UiTools Xml XmlPatterns)
 set(qtlibs ${qt${PythonQt_QT_VERSION}libs})
   
 # Webkit need to be removed Qt >= 5.6
 if(PythonQt_QT_VERSION MATCHES 5)
   find_package(Qt5 ${minimum_required_qt5_version} COMPONENTS Core REQUIRED)
-  if(${Qt5Core_VERSION_MINOR} GREATER 5)
-    list(REMOVE_ITEM qtlibs WebKitWidgets)
-    list(REMOVE_ITEM qt4libs webkit)
-  endif()
 endif()
 #-----------------------------------------------------------------------------
 # Python libraries
@@ -84,49 +69,20 @@ if(NOT DEFINED PythonQt_INSTALL_INCLUDE_DIR)
   set(PythonQt_INSTALL_INCLUDE_DIR include/PythonQt)
 endif()
 
-# Since the Qt bindings sources used for both Qt4 and Qt5 are
-# grouped using Qt4 naming convention, qt_wrapped_libs variables are the
-# same for the two Qt versions.
-set(qt4_wrapped_libs ${qt4libs})
-set(qt5_wrapped_libs ${qt4libs})
-set(qt_wrapped_libs ${qt${PythonQt_QT_VERSION}_wrapped_libs})
+# Hard code wrapping to a known good configuration
+set(PythonQt_Wrap_QtAll           ON CACHE BOOL "Make all of QtAll available in python"   FORCE)
+set(PythonQt_Wrap_Qtcore          ON CACHE BOOL "Make all of Qtcore available in python"  FORCE)
+set(PythonQt_Wrap_Qtgui           ON CACHE BOOL "Make all of Qtgui available in python"  FORCE)
+set(PythonQt_Wrap_Qtnetwork       ON CACHE BOOL "Make all of Qtnetwork available in python"  FORCE)
+set(PythonQt_Wrap_Qtopengl        ON CACHE BOOL "Make all of Qtopengl available in python"  FORCE)
+set(PythonQt_Wrap_Qtsql           ON CACHE BOOL "Make all of Qtsql available in python"  FORCE)
+set(PythonQt_Wrap_Qtsvg           ON CACHE BOOL "Make all of Qtsvg available in python"  FORCE)
+set(PythonQt_Wrap_Qtuitools       ON CACHE BOOL "Make all of Qttuitools available in python"  FORCE)
+set(PythonQt_Wrap_Qtxml           ON CACHE BOOL "Make all of Qtxml available in python"  FORCE)
 
-set(qt5_wrapped_lib_depends_gui Multimedia)
+set(PythonQt_Wrap_Qtxmlpatterns   OFF CACHE BOOL "Don't turn this on, this doesn't even compile"  FORCE)
 
-set(qtlib_to_wraplib_Widgets gui)
-set(qtlib_to_wraplib_WebKitWidgets webkit)
-
-# Define PythonQt_Wrap_Qt* options
-option(PythonQt_Wrap_QtAll "Make all Qt components available in python" OFF)
-foreach(qtlib ${qt_wrapped_libs})
-  OPTION(PythonQt_Wrap_Qt${qtlib} "Make all of Qt${qtlib} available in python" OFF)
-endforeach()
-
-# Set qtlib_to_wraplib_* variables
-foreach(qtlib ${qtlibs})
-  string(TOLOWER ${qtlib} qtlib_lowercase)
-  if(DEFINED qtlib_to_wraplib_${qtlib})
-    set(qtlib_lowercase ${qtlib_to_wraplib_${qtlib}})
-  endif()
-  set(qtlib_to_wraplib_${qtlib} ${qtlib_lowercase})
-endforeach()
-
-# Force option if it applies
-if(PythonQt_Wrap_QtAll)
-  set(_qt_wrapped_libs ${qt_wrapped_libs})
-
-  # XXX xmlpatterns wrapper does *NOT* build at all :(
-  list(REMOVE_ITEM _qt_wrapped_libs xmlpatterns)
-
-  foreach(qtlib ${_qt_wrapped_libs})
-    if(NOT ${PythonQt_Wrap_Qt${qtlib}})
-      set(PythonQt_Wrap_Qt${qtlib} ON CACHE BOOL "Make all of Qt${qtlib} available in python" FORCE)
-      message(STATUS "Enabling [PythonQt_Wrap_Qt${qtlib}] because of [PythonQt_Wrap_QtAll] evaluates to True")
-    endif()
-  endforeach()
-endif()
-
-option(PythonQt_DEBUG "Enable/Disable PythonQt debug output" OFF)
+option(PythonQt_DEBUG "Enable/Disable PythonQt debug output -- Don't turn this on, it doesn't compile!" OFF)
 if(PythonQt_DEBUG)
   add_definitions(-DPYTHONQT_DEBUG)
 else()
@@ -136,72 +92,38 @@ endif()
 #-----------------------------------------------------------------------------
 # Setup Qt
 
-if(PythonQt_QT_VERSION VERSION_GREATER "4")
 
-  # Required components
-  set(qt_required_components Core Widgets)
-  foreach(qtlib ${qtlibs})
-    set(qt_wrapped_lib ${qtlib_to_wraplib_${qtlib}})
-    if(${PythonQt_Wrap_Qt${qt_wrapped_lib}})
-      list(APPEND qt_required_components ${qtlib} ${qt${PythonQt_QT_VERSION}_wrapped_lib_depends_${qt_wrapped_lib}})
-    endif()
-  endforeach()
-  if(BUILD_TESTING)
-    list(APPEND qt_required_components Test)
+# Required components
+set(qt_required_components Core Widgets)
+foreach(qtlib ${qtlibs})
+  set(qt_wrapped_lib ${qtlib_to_wraplib_${qtlib}})
+  if(${PythonQt_Wrap_Qt${qt_wrapped_lib}})
+    list(APPEND qt_required_components ${qtlib} ${qt${PythonQt_QT_VERSION}_wrapped_lib_depends_${qt_wrapped_lib}})
   endif()
-  list(REMOVE_DUPLICATES qt_required_components)
-
-  message(STATUS "${PROJECT_NAME}: Required Qt components [${qt_required_components}]")
-  find_package(Qt5 ${minimum_required_qt_version} COMPONENTS ${qt_required_components} REQUIRED)
-
-  set(QT_LIBRARIES )
-  foreach(qtlib ${qt_required_components})
-    include_directories(${Qt5${qtlib}_INCLUDE_DIRS})
-    add_definitions(${Qt5${qtlib}_DEFINITIONS})
-    list(APPEND QT_LIBRARIES ${Qt5${qtlib}_LIBRARIES})
-  endforeach()
-
-  set(QT_VERSION_MAJOR ${Qt5Core_VERSION_MAJOR})
-  set(QT_VERSION_MINOR ${Qt5Core_VERSION_MINOR})
-
-  macro(pythonqt_wrap_cpp)
-    qt5_wrap_cpp(${ARGV})
-  endmacro()
-
-else()
-
-  find_package(Qt4)
-
-  if(QT4_FOUND)
-
-    set(found_qt_version ${QT_VERSION_MAJOR}.${QT_VERSION_MINOR}.${QT_VERSION_PATCH})
-
-    if(${found_qt_version} VERSION_LESS ${minimum_required_qt_version})
-      message(FATAL_ERROR "error: PythonQt requires Qt >= ${minimum_required_qt_version} -- you cannot use Qt ${found_qt_version}.")
-    endif()
-
-    # Enable required qt module
-    foreach(qtlib ${qt_wrapped_libs})
-      string(TOUPPER ${qtlib} qtlib_uppercase)
-      if (NOT ${QT_QT${qtlib_uppercase}_FOUND})
-        message(FATAL_ERROR "QT_QT${qtlib_uppercase} *not* FOUND - Try to disable PythonQt_Wrap_Qt${qtlib}")
-      endif()
-      set(QT_USE_QT${qtlib_uppercase} ${PythonQt_Wrap_Qt${qtlib}})
-    endforeach()
-
-    # Enable QtTest in Qt4 is the option BUILD_TESTING was activated
-    set(QT_USE_QTTEST ${BUILD_TESTING})
-
-    include(${QT_USE_FILE})
-  else()
-    message(FATAL_ERROR "error: Qt4 was not found on your system. You probably need to set the QT_QMAKE_EXECUTABLE variable")
-  endif()
-
-  macro(pythonqt_wrap_cpp)
-    qt4_wrap_cpp(${ARGV})
-  endmacro()
-
+endforeach()
+if(BUILD_TESTING)
+  list(APPEND qt_required_components Test)
 endif()
+list(REMOVE_DUPLICATES qt_required_components)
+
+message(STATUS "${PROJECT_NAME}: Required Qt components [${qt_required_components}]")
+message("Attempting to find Qt5")
+find_package(Qt5 ${minimum_required_qt_version} COMPONENTS ${qt_required_components} REQUIRED)
+
+set(QT_LIBRARIES )
+foreach(qtlib ${qt_required_components})
+  include_directories(${Qt5${qtlib}_INCLUDE_DIRS})
+  add_definitions(${Qt5${qtlib}_DEFINITIONS})
+  list(APPEND QT_LIBRARIES ${Qt5${qtlib}_LIBRARIES})
+endforeach()
+
+set(QT_VERSION_MAJOR ${Qt5Core_VERSION_MAJOR})
+set(QT_VERSION_MINOR ${Qt5Core_VERSION_MINOR})
+
+macro(pythonqt_wrap_cpp)
+  qt5_wrap_cpp(${ARGV})
+endmacro()
+
 
 if(UNIX)
   find_package(OpenGL)
