@@ -1,3 +1,5 @@
+// NOTE: This only works on release builds
+
 #include "PythonQt.h"
 #include <QApplication>
 #include <QTextBrowser>
@@ -17,6 +19,33 @@ const char* const TestScript =
 "        total += item          \n"
 "    return total";
 
+static QVariant DebugPyObject(const char* const script)
+{
+    qDebug("attempting to evaluate");
+    qDebug(script);
+
+
+    // get the __main__ python module
+    PythonQtObjectPtr mainModule = PythonQt::self()->getMainModule();
+
+    // according to this https://mevislab.github.io/pythonqt/Developer.html
+    // it should be a QVariantMap for dicts
+    QVariant result = mainModule.evalScript(script, Py_eval_input);
+
+    if(result.isValid())
+    {
+        qDebug("Is valid");
+    }
+    else
+    {
+        qDebug("Is not valid");
+    }
+
+    qDebug(result.toString().toStdString().c_str());
+
+    return result;
+}
+
 int main( int argc, char **argv )
 {
   //printf("Hello! Press enter to continue!\n");
@@ -28,8 +57,53 @@ int main( int argc, char **argv )
 
   printf("Initialized PythonQt!\n");
 
+  QVariant intResult = DebugPyObject("2+2");
+
+  QVariant listResult = DebugPyObject("[0,1,2,3,4]");
+
+
+
+  QVariant strListResult = DebugPyObject("['zero', 'one', 'two','three']");
+
+  QList<QVariant> varList_strList = strListResult.value<QList<QVariant>>();
+
+  std::vector<std::string> strs;
+  for(const QVariant& variant : varList_strList)
+  {
+    QString qStr = variant.value<QString>();
+    std::string sStr = qStr.toStdString();
+    strs.push_back(sStr);
+  }
+
+  qDebug("Contents of array:");
+  for(const std::string& sStr : strs)
+  {
+      qDebug(sStr.c_str());
+  }
+
+  qDebug("\n");
+
+  QVariant exceptionResult = DebugPyObject("raise RuntimeError('hi there')");
+
   // get the __main__ python module
   PythonQtObjectPtr mainModule = PythonQt::self()->getMainModule();
+
+  // according to this https://mevislab.github.io/pythonqt/Developer.html
+  // it should be a QVariantMap
+  // which is typedef QMap<QString, QVariant> QVariantMap;
+  QVariant dictResult = DebugPyObject("{'one':1, 'two':2}");
+
+  QMap<QString, QVariant> qMap = qvariant_cast<QMap<QString, QVariant>>(dictResult);
+
+  const QList<QString> keys = qMap.keys();
+
+  qDebug("Dictionary entries:" );
+  for(const QString& key : keys)
+  {
+      QVariant value = qMap[key];
+      QString entryString = QString("%1:%2").arg(key).arg(value.toString());
+      qDebug(entryString.toStdString().c_str());
+  }
 
   printf("Got mainmodule!\n");
 
@@ -97,6 +171,8 @@ int main( int argc, char **argv )
 
   qDebug("Array result:");
   qDebug(arrayResult.toString().toStdString().c_str());
+
+
 
   printf("Got to the end!\n");
 
