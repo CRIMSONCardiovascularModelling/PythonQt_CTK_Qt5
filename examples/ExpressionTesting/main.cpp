@@ -91,19 +91,44 @@ int main( int argc, char **argv )
   // according to this https://mevislab.github.io/pythonqt/Developer.html
   // it should be a QVariantMap
   // which is typedef QMap<QString, QVariant> QVariantMap;
-  QVariant dictResult = DebugPyObject("{'one':1, 'two':2}");
 
-  QMap<QString, QVariant> qMap = qvariant_cast<QMap<QString, QVariant>>(dictResult);
-
-  const QList<QString> keys = qMap.keys();
-
-  qDebug("Dictionary entries:" );
-  for(const QString& key : keys)
   {
-      QVariant value = qMap[key];
-      QString entryString = QString("%1:%2").arg(key).arg(value.toString());
-      qDebug(entryString.toStdString().c_str());
+      QVariant dictResult = DebugPyObject("{'one':1, 'two':2}");
+      QMap<QString, QVariant> qMap = qvariant_cast<QMap<QString, QVariant>>(dictResult);
+
+      const QList<QString> keys = qMap.keys();
+
+      qDebug("Dictionary entries:" );
+      for(const QString& key : keys)
+      {
+          QVariant value = qMap[key];
+          QString entryString = QString("%1:%2").arg(key).arg(value.toString());
+          qDebug(entryString.toStdString().c_str());
+      }
   }
+
+  qDebug();
+
+
+  {
+      QVariant dictResult_intKey = DebugPyObject("{1:'one', 2:'two'}");
+
+      // QMap<QVariant, QVariant> does not seem to be a valid cast from a dictionary result
+      QMap<QString, QVariant> qMap = qvariant_cast<QMap<QString, QVariant>>(dictResult_intKey);
+
+      const QList<QString> keys = qMap.keys();
+
+      qDebug("Dictionary entries:" );
+      for(const QString& key : keys)
+      {
+          int keyValue = key.toInt();
+          QVariant value = qMap[key];
+          QString entryString = QString("%1:%2").arg(keyValue).arg(value.toString());
+          qDebug(entryString.toStdString().c_str());
+      }
+  }
+
+  qDebug();
 
   printf("Got mainmodule!\n");
 
