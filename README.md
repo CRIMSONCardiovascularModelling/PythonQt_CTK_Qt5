@@ -1,11 +1,8 @@
 # PythonQt_CTK_Qt5
-The version of PythonQt used by CTK, for use in test projects; with build scripts edited to support Qt 5.7.0.
-
-Unfortunately I was not able to identify the exact version of PythonQt this was based off of, I would guess it's related to the [commontk/PythonQt](https://github.com/commontk/PythonQt) repository.
-
-This is an unofficial edit of PythonQt, you can find the original readme files that came with the repository in z_old_README and z_old_README.md
-
-Only Release builds are supported at this time, tested with Qt 5.7.0 and Visual Studio 2013 (on Windows).
+- The version of PythonQt used by CTK, for use in test projects; with build scripts edited to support Qt 5.7.0.
+- Unfortunately I was not able to identify the exact version of PythonQt this was based off of, I would guess it's related to the [commontk/PythonQt](https://github.com/commontk/PythonQt) repository.
+- This is an unofficial edit of PythonQt, you can find the original readme files that came with the repository in z_old_README and z_old_README.md
+- Only Release builds are supported at this time, tested with Qt 5.7.0 and Visual Studio 2013 (on Windows).
 
 # Usage
 
@@ -17,7 +14,9 @@ Only Release builds are supported at this time, tested with Qt 5.7.0 and Visual 
 
 4. In PythonQt_CTK\examples\ExpressionTesting, open MyPythonQtTestProj.pro in QtCreator
 
-5. Build the project in **Release** mode, and run it
+5. Open this .pro file in QtCreator's text editor, and make any edits to directories/copy files as needed for your setup (there are comments explaining directories that you may need to modify).
+
+6. Build the project in **Release** mode, and run it
 
 # Example code
 
