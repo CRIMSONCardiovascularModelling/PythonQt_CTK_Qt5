@@ -46,6 +46,10 @@ static QVariant DebugPyObject(const char* const script)
     return result;
 }
 
+// What C++ / Qt object PythonQt converts data to is not always obvious, check
+// PythonQt_CTK\src\PythonQtConversion.cpp
+// QVariant PythonQtConv::PyObjToQVariant(PyObject* val, int type)
+// for more information
 int main( int argc, char **argv )
 {
   //printf("Hello! Press enter to continue!\n");
@@ -197,6 +201,17 @@ int main( int argc, char **argv )
   qDebug("Array result:");
   qDebug(arrayResult.toString().toStdString().c_str());
 
+
+  // ok, what about sets?
+  QVariant variantSet = DebugPyObject("{1,2,2}");
+  // 1092, which appears to be some kind of Set
+  int variantType = variantSet.userType();
+  qDebug("Variant type is '%d'\n", variantType);
+
+  // the Python set type does not seem to be readable by PythonQt.
+  QSet<QVariant> set = qvariant_cast<QSet<QVariant>>(variantSet);
+
+  qDebug("Number of entries in set: %d\n", set.size());
 
 
   printf("Got to the end!\n");

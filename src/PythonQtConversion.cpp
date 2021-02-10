@@ -1008,6 +1008,7 @@ QVariant PythonQtConv::PyObjToQVariant(PyObject* val, int type)
       return v;
     } else if (PyDict_Check(val)) {
       type = QVariant::Map;
+      // see, e.g., https://docs.python.org/3/c-api/sequence.html#c.PySequence_Check
     } else if (PyList_Check(val) || PyTuple_Check(val) || PySequence_Check(val)) {
       type = QVariant::List;
     } else if (val == Py_None) {
